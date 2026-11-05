@@ -1,7 +1,8 @@
 """FastAPI application factory for the Phase 3 backend.
 
-``create_app`` assembles the routers, CORS middleware and error handlers. The
-model service is loaded at startup (best effort: failures are reported by
+``create_app`` assembles the routers (health, predict, ingestion, machines,
+alerts), CORS middleware and error handlers. The model service and SQLite
+database are initialized at startup (best effort: failures are reported by
 ``GET /ready`` instead of crashing startup) and kept in memory for inference.
 """
 
@@ -13,9 +14,11 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from predictive_maintenance import config
+from predictive_maintenance.api import db
 from predictive_maintenance.api.config import get_settings
 from predictive_maintenance.api.dependencies import get_model_service
-from predictive_maintenance.api.routes import health, predict
+from predictive_maintenance.api.routes import alerts, health, machines, predict, readings
 from predictive_maintenance.api.service import (
     IncompatibleConfigurationError,
     ModelNotFoundError,
@@ -29,7 +32,8 @@ def create_app() -> FastAPI:
         title=settings.app_name,
         version=settings.app_version,
         description="Model-serving API for the Predictive Maintenance AI project "
-        "(Phase 3: FastAPI backend; NASA C-MAPSS anomaly + failure models).",
+        "(Phase 3: FastAPI backend; ingestion, SQLite persistence, monitoring, "
+        "alerting on NASA C-MAPSS anomaly + failure models).",
         docs_url="/docs",
         redoc_url="/redoc",
     )
@@ -50,8 +54,13 @@ def create_app() -> FastAPI:
     app.state.service = get_model_service()
 
     @app.on_event("startup")
-    def _load_artefacts_at_startup() -> None:
-        """Load all trained artefacts once (best effort)."""
+    def _initialize_at_startup() -> None:
+        """Load trained artefacts at startup (best effort).
+
+        The SQLite schema is initialized lazily on first session via
+        ``db.get_session()`` so that tests can override the database URL
+        without the startup event clobbering it.
+        """
         try:
             app.state.service.load()
         except Exception:  # noqa: BLE001 - /ready surfaces load problems
@@ -61,6 +70,9 @@ def create_app() -> FastAPI:
 
     app.include_router(health.router)
     app.include_router(predict.router)
+    app.include_router(readings.router)
+    app.include_router(machines.router)
+    app.include_router(alerts.router)
 
     # ------------------------------------------------------------------ error handlers
 

@@ -25,3 +25,7 @@ data/processed/
 # Local environment files
 .env
 .ipynb_checkpoints/
+
+# SQLite databases created at runtime by the Phase 3 backend.
+*.db
+data/predictive_maintenance.db

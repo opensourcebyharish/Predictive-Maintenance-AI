@@ -247,7 +247,7 @@ class ModelService:
 def _reading_to_frame(reading: Any) -> pd.DataFrame:
     """Convert one validated reading into the single-row frame the pipeline expects."""
     data = reading.model_dump() if hasattr(reading, "model_dump") else dict(reading)
-    unit = int(data.pop("unit"))
+    unit = data.pop("unit")
     cycle = int(data.pop("cycle"))
     row = {"unit": unit, "cycle": cycle}
     row.update({name: float(value) for name, value in data.items()})
