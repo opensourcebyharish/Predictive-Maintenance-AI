@@ -13,7 +13,7 @@ abnormal behaviour, and predicts equipment failures **before** they happen.
 | Phase | Scope | State |
 |---|---|---|
 | 1 — Data & setup | dataset download, loaders, EDA report, IoT simulator | ✅ |
-| 2 — Machine learning | preprocessing, Isolation Forest, XGBoost/RForest, evaluation | ⬜ next |
+| 2 — Machine learning | **2.1 preprocessing ✅** · 2.2 Isolation Forest & classification ⬜ · 2.3 evaluation ⬜ | 🚧 |
 | 3 — Backend | FastAPI endpoints, model serving, SQLite storage | ⬜ |
 | 4 — IoT simulation | streaming readings, alerts | ⬜ (simulator core done in Phase 1) |
 | 5 — Dashboard | live charts, health status, alert history | ⬜ |
@@ -25,12 +25,15 @@ abnormal behaviour, and predicts equipment failures **before** they happen.
 scripts/                       command-line entry points
   download_data.py             fetch the 13 C-MAPSS files into data/raw/CMAPSSData
   run_eda.py                   regenerate reports/eda_summary.md + figures
+  build_features.py            Phase-2.1 feature build -> data/processed/*.parquet + manifest
 src/predictive_maintenance/    installable package
   config.py                    paths, dataset metadata, sensor names
   data/cmapss.py               C-MAPSS readers + RUL labelling
   data/download.py             dataset fetch (mirror fallback logic)
   data/simulator.py            synthetic machine IoT simulator (fleet of 3)
   eda/report.py                Phase-1 EDA figure + markdown generation
+  preprocessing/               Phase-2.1 pipeline: validation, features, regimes, splits
+docs/preprocessing.md          preprocessing workflow, guarantees and assumptions
 ```
 
 ## Setup & run
@@ -42,7 +45,11 @@ pip install -e .
 
 python scripts\download_data.py   # ~45 MB of C-MAPSS text data
 python scripts\run_eda.py         # writes reports/eda_summary.md and figures
+python scripts\build_features.py  # Phase 2.1: engineered feature parquet + manifest
 ```
+
+See `docs/preprocessing.md` for the feature workflow, its guarantees and the
+dataset assumptions.
 
 ## Notes
 

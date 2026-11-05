@@ -16,7 +16,7 @@ import pandas as pd
 from predictive_maintenance import config
 
 UNIT_COLUMNS: tuple[str, ...] = ("unit", "cycle")
-OP_SETTING_COLUMNS: tuple[str, ...] = ("setting_1", "setting_2", "setting_3")
+OP_SETTING_COLUMNS: list[str] = ["setting_1", "setting_2", "setting_3"]
 # Raw file columns 6..26 -> sensor signals s1..s21 (names in config.SENSOR_LABELS).
 SENSOR_COLUMNS: list[str] = [f"s{index}" for index in range(1, 22)]
 
