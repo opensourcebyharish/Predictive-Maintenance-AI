@@ -14,7 +14,7 @@ abnormal behaviour, and predicts equipment failures **before** they happen.
 |---|---|---|
 | 1 — Data & setup | dataset download, loaders, EDA report, IoT simulator | ✅ |
 | 2 — Machine learning | **2.1 preprocessing ✅** · **2.2 Isolation Forest anomaly detection ✅** · **2.3/2.4 Random Forest + XGBoost classifiers ✅** · **2.5 unified evaluation ✅** | ✅ |
-| 3 — Backend | FastAPI endpoints, model serving, SQLite storage | ⬜ |
+| 3 — Backend | **3.1 FastAPI foundation ✅** · **3.2 Model loading + prediction service ✅** · 3.3 (storage/ingestion) ⬜ | 🚧 |
 | 4 — IoT simulation | streaming readings, alerts | ⬜ (simulator core done in Phase 1) |
 | 5 — Dashboard | live charts, health status, alert history | ⬜ |
 | 6 — Deployment | Docker, tests, docs | ⬜ |
@@ -30,6 +30,7 @@ scripts/                       command-line entry points
   train_classifiers.py         Phase 2.3/2.4: Random Forest + XGBoost failure classifiers
   evaluate_models.py           Phase 2.5: unified evaluation -> reports/evaluation + figures
 src/predictive_maintenance/    installable package
+  api/                         Phase 3: FastAPI backend (config, schemas, service, routes)
   config.py                    paths, dataset metadata, sensor names
   data/cmapss.py               C-MAPSS readers + RUL labelling
   data/download.py             dataset fetch (mirror fallback logic)
@@ -53,6 +54,7 @@ python scripts\build_features.py  # Phase 2.1: engineered feature parquet + mani
 python scripts\train_anomaly_detector.py  # Phase 2.2: isolation forest detector -> models/*/*.joblib
 python scripts\train_classifiers.py       # Phase 2.3/2.4: RF + XGB classifiers -> models/*/*.joblib
 python scripts\evaluate_models.py         # Phase 2.5: unified evaluation -> reports/evaluation/* + reports/figures/phase2/*
+.venv\Scripts\python.exe -m uvicorn predictive_maintenance.api.main:app --app-dir src  # Phase 3: API on http://127.0.0.1:8000
 ```
 
 See `docs/preprocessing.md` for the feature workflow, its guarantees and the
