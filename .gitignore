@@ -19,3 +19,4 @@ data/processed/
 
 # Local environment files
 .env
+.ipynb_checkpoints/

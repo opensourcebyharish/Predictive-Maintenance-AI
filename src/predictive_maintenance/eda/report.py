@@ -32,7 +32,11 @@ from predictive_maintenance.data.cmapss import (
     load_cmapss,
     load_rul,
 )
-from predictive_maintenance.data.simulator import MACHINES, run_to_failure
+from predictive_maintenance.data.simulator import (
+    MACHINES,
+    readings_to_dataframe,
+    run_to_failure,
+)
 
 FIGURE_DPI = 150
 TOP_SENSORS_COUNT = 9

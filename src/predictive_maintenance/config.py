@@ -46,7 +46,12 @@ class DatasetMeta:
     conditions: str  # distinct operating-condition regimes
     fault_modes: str  # simulated degradation mode(s)
     train_units: int  # run-to-failure engines in the training split
-    test_units: int  # engines in the test split (= rows in RUL_<id>.txt)
+    n_test_units: int  # engines in the test split (= rows in RUL_<id>.txt)
+
+    @property
+    def n_train_units(self) -> int:
+        """Alias matching the ``n_test_units`` naming used by the loaders."""
+        return self.train_units
 
 
 # Counts come from the official CMAPSSData readme; the EDA pipeline warns when
@@ -54,10 +59,10 @@ class DatasetMeta:
 DATASETS: dict[str, DatasetMeta] = {
     meta.dataset_id: meta
     for meta in (
-        DatasetMeta("FD001", "ONE (Sea Level)", "ONE (HPC Degradation)", 100, 100),
-        DatasetMeta("FD002", "SIX", "ONE (HPC Degradation)", 260, 259),
-        DatasetMeta("FD003", "ONE (Sea Level)", "TWO (HPC + Fan Degradation)", 100, 100),
-        DatasetMeta("FD004", "SIX", "TWO (HPC + Fan Degradation)", 249, 248),
+        DatasetMeta("FD001", "ONE (Sea Level)", "ONE (HPC Degradation)", 100, n_test_units=100),
+        DatasetMeta("FD002", "SIX", "ONE (HPC Degradation)", 260, n_test_units=259),
+        DatasetMeta("FD003", "ONE (Sea Level)", "TWO (HPC + Fan Degradation)", 100, n_test_units=100),
+        DatasetMeta("FD004", "SIX", "TWO (HPC + Fan Degradation)", 249, n_test_units=248),
     )
 }
 

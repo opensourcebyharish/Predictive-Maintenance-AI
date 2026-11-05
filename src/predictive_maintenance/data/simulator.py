@@ -213,7 +213,9 @@ MACHINES: tuple[MachineProfile, ...] = (
         vibration_base_mm_s=2.5,
         pressure_base_bar=10.0,
         rpm_base=3000.0,
-        wear_rate_per_step=0.05,
+        # Fastest degrader of the fleet: lifespan ~ 100*ln(1+g)/(w*g) ~= 716 steps,
+        # so it reaches the failure-risk state within a 800-step demo window.
+        wear_rate_per_step=0.07,
     ),
 )
 
