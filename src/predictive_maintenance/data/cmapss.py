@@ -14,10 +14,10 @@ import pandas as pd
 
 from predictive_maintenance import config
 
-UNIT_COLUMNS: tuple[str, ...] = ("unit", "cycle")
-OP_SETTING_COLUMNS: tuple[str, ...] = ("setting_1", "setting_2", "setting_3")
+UNIT_COLUMNS: list[str] = ["unit", "cycle"]
+OP_SETTING_COLUMNS: list[str] = ["setting_1", "setting_2", "setting_3"]
 # Raw file columns 6..26 -> sensor signals s1..s21 (see config.SENSOR_LABELS).
-SENSOR_COLUMNS: tuple[str, ...] = tuple(f"s{index}" for index in range(1, 22))
+SENSOR_COLUMNS: list[str] = [f"s{index}" for index in range(1, 22)]
 
 _raw_columns: list[str] = [
     *UNIT_COLUMNS,
@@ -26,7 +26,7 @@ _raw_columns: list[str] = [
 ]
 
 # Everything a model may consume in Phase 2 (settings identify the regime).
-FEATURE_COLUMNS: tuple[str, ...] = (*OP_SETTING_COLUMNS, *SENSOR_COLUMNS)
+FEATURE_COLUMNS: list[str] = [*OP_SETTING_COLUMNS, *SENSOR_COLUMNS]
 
 
 def load_cmapss(dataset_id: str, split: str, directory: Path | None = None) -> pd.DataFrame:

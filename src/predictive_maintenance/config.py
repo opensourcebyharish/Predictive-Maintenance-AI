@@ -57,7 +57,7 @@ DATASETS: dict[str, DatasetMeta] = {
         DatasetMeta("FD001", "ONE (Sea Level)", "ONE (HPC Degradation)", 100, 100),
         DatasetMeta("FD002", "SIX", "ONE (HPC Degradation)", 260, 259),
         DatasetMeta("FD003", "ONE (Sea Level)", "TWO (HPC + Fan Degradation)", 100, 100),
-        DatasetMeta("FD004", "SIX", "TWO (HPC + Fan Degradation)", 248, 249),
+        DatasetMeta("FD004", "SIX", "TWO (HPC + Fan Degradation)", 249, 248),
     )
 }
 

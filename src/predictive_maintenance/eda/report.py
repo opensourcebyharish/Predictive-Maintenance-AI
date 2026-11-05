@@ -452,8 +452,8 @@ def main(
         figures.append(path.name)
         return path
 
-    save(fig_lifespans, figures_dir / "fig01_lifespans.png")
-    save(fig_operating_conditions, figures_dir / "fig02_operating_conditions.png")
+    save(lambda p: fig_lifespans(train, p), figures_dir / "fig01_lifespans.png")
+    save(lambda p: fig_operating_conditions(train, p), figures_dir / "fig02_operating_conditions.png")
     for ds in config.DATASET_IDS:
         selected_sensors = [sensor for sensor, _ in selected[ds]]
         save(
@@ -464,8 +464,8 @@ def main(
         lambda p: fig_sample_units(train["FD001"], [s for s, _ in selected["FD001"]], p),
         figures_dir / "fig07_sample_units_fd001.png",
     )
-    save(fig_constant_sensors, figures_dir / "fig08_constant_sensors.png")
-    save(fig_correlations, figures_dir / "fig09_delta_rul_correlations.png")
+    save(lambda p: fig_constant_sensors(stds, p), figures_dir / "fig08_constant_sensors.png")
+    save(lambda p: fig_correlations(per_dataset_corr, p), figures_dir / "fig09_delta_rul_correlations.png")
     save(fig_simulator_fleet, figures_dir / "fig10_simulator_fleet.png")
 
     markdown = build_markdown_report(overview, constants, selected, figures)

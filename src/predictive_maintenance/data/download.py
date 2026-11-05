@@ -27,7 +27,7 @@ _FILE_NAMES: list[str] = [
     "readme.txt",
     *(f"train_FD{index}.txt" for index in ("001", "002", "003", "004")),
     *(f"test_FD{index}.txt" for index in ("001", "002", "003", "004")),
-    *(f"RUL_{index}.txt" for index in ("001", "002", "003", "004")),
+    *(f"RUL_FD{index}.txt" for index in ("001", "002", "003", "004")),
 ]
 
 # Source 1: individual files (verified mirror of the official dataset bundle).

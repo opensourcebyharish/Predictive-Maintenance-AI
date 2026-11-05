@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Predictive Maintenance AI - IoT anomaly detection and failure prediction on NASA C-MAPSS"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = "MIT"
 authors = [{ name = "hp" }]
 dependencies = [
     "numpy>=1.26",
