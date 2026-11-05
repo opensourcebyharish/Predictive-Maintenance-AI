@@ -17,6 +17,11 @@ venv/
 data/raw/
 data/processed/
 
+# Trained model artefacts (joblib + JSON manifests) under /models are
+# reproducible via scripts/train_*.py; never committed. (The model package
+# source lives under src/predictive_maintenance/models/ and IS tracked.)
+/models/
+
 # Local environment files
 .env
 .ipynb_checkpoints/
