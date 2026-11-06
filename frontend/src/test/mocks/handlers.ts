@@ -9,13 +9,13 @@
 
 import { http, HttpResponse, delay } from "msw";
 
-import type { AlertStatus } from "@/api/types";
+import type { AlertStatus, EvaluationReport } from "@/api/types";
 
 import {
   ALERTS,
   ALERT_SUMMARY_OK,
   EVALUATION_INDEX_FIXTURE,
-  EVALUATION_REPORT_FD001,
+  EVALUATION_REPORTS,
   HEALTH_OK,
   MACHINE_DETAILS,
   MACHINE_HEALTH_SNAPSHOTS,
@@ -152,18 +152,20 @@ export const DEFAULT_HANDLERS = [
 
   http.get(url("/evaluation"), () => HttpResponse.json(EVALUATION_INDEX_FIXTURE)),
   http.get(url("/evaluation/:datasetId"), ({ params }) => {
-    if (String(params.datasetId) !== "FD001") {
+    const datasetId = String(params.datasetId);
+    const report = (EVALUATION_REPORTS as Record<string, EvaluationReport | undefined>)[datasetId];
+    if (report === undefined) {
       return HttpResponse.json(
         {
           detail: {
             error: "evaluation_report_missing",
-            message: `no evaluation report for ${String(params.datasetId)}`,
+            message: `no evaluation report for ${datasetId}`,
           },
         },
         { status: 404 },
       );
     }
-    return HttpResponse.json(EVALUATION_REPORT_FD001);
+    return HttpResponse.json(report);
   }),
 ];
 
@@ -192,6 +194,25 @@ export const EMPTY_HANDLERS = [
   http.get(url("/machines/:machineId/*"), () =>
     HttpResponse.json(
       { detail: { error: "machine_not_found", message: "empty database" } },
+      { status: 404 },
+    ),
+  ),
+];
+
+/**
+ * Evaluation index without report files: the route answers 404 with the same
+ * `evaluation_report_missing` detail the backend returns for a missing file.
+ */
+export const EMPTY_EVALUATION_HANDLERS = [
+  http.get(url("/evaluation"), () => HttpResponse.json({ datasets: [], by_dataset: {} })),
+  http.get(url("/evaluation/:datasetId"), ({ params }) =>
+    HttpResponse.json(
+      {
+        detail: {
+          error: "evaluation_report_missing",
+          message: `no evaluation report for ${String(params.datasetId)}`,
+        },
+      },
       { status: 404 },
     ),
   ),

@@ -33,12 +33,13 @@ export default defineConfig({
         "src/**/*.spec.{ts,tsx}",
       ],
       thresholds: {
-        // Infrastructure phase gate: api client/hooks/mocks/tooling are covered
-        // now; page and panel components are covered during Phase 5 page work.
-        statements: 15,
-        branches: 15,
-        functions: 15,
-        lines: 15,
+        // Phase 5.2 gate: component + dashboard-page suites kept the suite at
+        // 91.76 stmts / 83.8 branch / 94.11 funcs / 93.46 lines — thresholds
+        // sit just under with a whole-percent of run-to-run headroom.
+        statements: 90,
+        branches: 82,
+        functions: 93,
+        lines: 92,
       },
     },
   },

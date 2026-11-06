@@ -9,6 +9,8 @@ import { render, renderHook, type RenderOptions, type RenderHookResult } from "@
 import type { ReactElement, ReactNode } from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
+import { App } from "@/App";
+
 interface RouterRenderOptions extends Omit<RenderOptions, "wrapper"> {
   /** URL the MemoryRouter starts at, e.g. "/alerts?status=active". */
   route?: string;
@@ -37,6 +39,15 @@ export function renderApp(routes: ReactNode, initialEntry = "/"): ReturnType<typ
       <Routes>{routes}</Routes>
     </MemoryRouter>,
   );
+}
+
+/**
+ * Renders the full `<App />` route table at a URL — the right entry point when
+ * a test exercises cross-page navigation (sidebar links, Links, route params
+ * and document.title updates). UI defaults to the whole application.
+ */
+export function renderFullPath(ui: ReactElement = <App />, entry = "/"): ReturnType<typeof render> {
+  return render(<MemoryRouter initialEntries={[entry]}>{ui}</MemoryRouter>);
 }
 
 export function renderHookWithRouter<TResult>(

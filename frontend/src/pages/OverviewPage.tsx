@@ -57,10 +57,18 @@ export function OverviewPage() {
         title="Fleet Overview"
         description="Aggregated machine health, alert load and simulated-vs-real ingestion status across the whole plant."
         actions={
-          <Badge tone="info">
-            <Timer aria-hidden className="h-3 w-3" />
-            {pollMs > 0 ? `Polling ${pollMs / 1000}s` : "Manual refresh"}
-          </Badge>
+          <>
+            {summary.error !== null && (
+              <Badge tone="critical">
+                <AlertTriangle aria-hidden className="h-3 w-3" />
+                Alert summary failed
+              </Badge>
+            )}
+            <Badge tone="info">
+              <Timer aria-hidden className="h-3 w-3" />
+              {pollMs > 0 ? `Polling ${pollMs / 1000}s` : "Manual refresh"}
+            </Badge>
+          </>
         }
       />
 

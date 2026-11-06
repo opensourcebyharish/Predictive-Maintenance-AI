@@ -204,6 +204,12 @@ export interface EvaluationReport {
 }
 
 export interface EvaluationIndex {
+  /** Datasets that have a committed report (backend skips missing ones). */
   datasets: DatasetId[];
-  by_dataset: Record<string, { default_model: string; metrics: Record<string, { f1: number; roc_auc: number; pr_auc: number; recall: number; precision: number }> }>;
+  /**
+   * Per dataset: the Phase-2/3 default model (best supervised validation F1)
+   * and ITS validation metrics — the backend returns the flat validation
+   * dict of the default model, not a per-model map.
+   */
+  by_dataset: Record<string, { default_model: string | null; metrics: Partial<EvaluationResult> }>;
 }
