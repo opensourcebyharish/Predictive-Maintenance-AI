@@ -14,8 +14,8 @@ abnormal behaviour, and predicts equipment failures **before** they happen.
 |---|---|---|
 | 1 — Data & setup | dataset download, loaders, EDA report, IoT simulator | ✅ |
 | 2 — Machine learning | **2.1 preprocessing ✅** · **2.2 Isolation Forest anomaly detection ✅** · **2.3/2.4 Random Forest + XGBoost classifiers ✅** · **2.5 unified evaluation ✅** | ✅ |
-| 3 — Backend | **3.1 FastAPI foundation ✅** · **3.2 Model loading + prediction service ✅** · 3.3 (storage/ingestion) ⬜ | 🚧 |
-| 4 — IoT simulation | streaming readings, alerts | ⬜ (simulator core done in Phase 1) |
+| 3 — Backend | **3.1 FastAPI foundation ✅** · **3.2 Model loading + prediction service ✅** · **3.3 Sensor ingestion ✅** · **3.4 Machine monitoring ✅** · **3.5 SQLite persistence ✅** · **3.6 Alert engine ✅** | ✅ |
+| 4 — IoT simulation | **4.1 Sensor ingestion client ✅** · **4.2 Multi-machine scenarios ✅** · **4.3 CLI + orchestration ✅** · 4.4 (streaming service) ⬜ | ✅ |
 | 5 — Dashboard | live charts, health status, alert history | ⬜ |
 | 6 — Deployment | Docker, tests, docs | ⬜ |
 
@@ -29,8 +29,10 @@ scripts/                       command-line entry points
   train_anomaly_detector.py    Phase 2.2: Isolation Forest anomaly detector
   train_classifiers.py         Phase 2.3/2.4: Random Forest + XGBoost failure classifiers
   evaluate_models.py           Phase 2.5: unified evaluation -> reports/evaluation + figures
+  run_simulator.py             Phase 4: IoT sensor simulator CLI
 src/predictive_maintenance/    installable package
   api/                         Phase 3: FastAPI backend (config, schemas, service, routes)
+  simulator/                   Phase 4: IoT sensor simulator (config, scenarios, client, orchestrator, CLI)
   config.py                    paths, dataset metadata, sensor names
   data/cmapss.py               C-MAPSS readers + RUL labelling
   data/download.py             dataset fetch (mirror fallback logic)
@@ -39,6 +41,7 @@ src/predictive_maintenance/    installable package
   preprocessing/               Phase-2.1 pipeline: validation, features, regimes, splits
 docs/preprocessing.md          preprocessing workflow, guarantees and assumptions
 docs/models.md                 Phase 2.2-2.5: anomaly detection, failure classifiers, unified evaluation
+docs/simulator.md              Phase 4: IoT sensor simulator guide
 ```
 
 ## Setup & run
@@ -55,6 +58,8 @@ python scripts\train_anomaly_detector.py  # Phase 2.2: isolation forest detector
 python scripts\train_classifiers.py       # Phase 2.3/2.4: RF + XGB classifiers -> models/*/*.joblib
 python scripts\evaluate_models.py         # Phase 2.5: unified evaluation -> reports/evaluation/* + reports/figures/phase2/*
 .venv\Scripts\python.exe -m uvicorn predictive_maintenance.api.main:app --app-dir src  # Phase 3: API on http://127.0.0.1:8000
+python scripts\run_simulator.py start  # Phase 4: IoT simulator (background)
+python scripts\run_simulator.py status  # check simulation status
 ```
 
 See `docs/preprocessing.md` for the feature workflow, its guarantees and the
@@ -69,3 +74,5 @@ dataset assumptions.
   trajectory chosen by the dataset designers, not a discrete physical event such
   as a bearing crack. Model outputs are therefore degradation/health indicators,
   not crash predictors.
+- Simulator readings (Phase 4) are synthetic and marked `is_simulated=true`;
+  they are not physical measurements.

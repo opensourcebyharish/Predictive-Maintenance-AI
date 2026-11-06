@@ -199,6 +199,7 @@ def _reading_record(reading: Reading) -> ReadingRecord:
         setting_2=float(reading.setting_2),
         setting_3=float(reading.setting_3),
         sensor_values=json.loads(reading.s_values) if reading.s_values else {},
+        is_simulated=reading.is_simulated,
         stored_at=reading.stored_at,
     )
 

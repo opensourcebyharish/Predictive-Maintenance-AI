@@ -104,6 +104,10 @@ class ReadingIngestRequest(BaseModel):
     setting_1: float = Field(..., description="Operating setting 1")
     setting_2: float = Field(..., description="Operating setting 2")
     setting_3: float = Field(..., description="Operating setting 3")
+    is_simulated: bool = Field(
+        default=False,
+        description="True when the reading originates from a simulator rather than a physical sensor",
+    )
 
     @property
     def sensor_values(self) -> dict[str, float]:
@@ -199,6 +203,7 @@ class ReadingRecord(BaseModel):
     setting_2: float
     setting_3: float
     sensor_values: dict[str, float]
+    is_simulated: bool = Field(default=False, description="True when the reading originated from a simulator")
     stored_at: datetime
 
 

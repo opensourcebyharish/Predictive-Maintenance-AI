@@ -196,6 +196,7 @@ class ReadingIngestionService:
             setting_2=reading.setting_2,
             setting_3=reading.setting_3,
             s_values=_json_sensors(reading),
+            is_simulated=reading.is_simulated,
         )
         session.add(db_reading)
         session.flush()

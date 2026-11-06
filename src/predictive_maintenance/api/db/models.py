@@ -78,6 +78,7 @@ class Reading(Base):
     setting_2: Mapped[float] = mapped_column(nullable=False)
     setting_3: Mapped[float] = mapped_column(nullable=False)
     s_values: Mapped[str] = mapped_column(Text, nullable=False)  # JSON map s1..s21 -> float
+    is_simulated: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     stored_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utc_now)
 
     __table_args__ = (
