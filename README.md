@@ -16,7 +16,7 @@ abnormal behaviour, and predicts equipment failures **before** they happen.
 | 2 — Machine learning | **2.1 preprocessing ✅** · **2.2 Isolation Forest anomaly detection ✅** · **2.3/2.4 Random Forest + XGBoost classifiers ✅** · **2.5 unified evaluation ✅** | ✅ |
 | 3 — Backend | **3.1 FastAPI foundation ✅** · **3.2 Model loading + prediction service ✅** · **3.3 Sensor ingestion ✅** · **3.4 Machine monitoring ✅** · **3.5 SQLite persistence ✅** · **3.6 Alert engine ✅** | ✅ |
 | 4 — IoT simulation | **4.1 Sensor ingestion client ✅** · **4.2 Multi-machine scenarios ✅** · **4.3 CLI + orchestration ✅** · 4.4 (streaming service) ⬜ | ✅ |
-| 5 — Dashboard | live charts, health status, alert history | ⬜ |
+| 5 — Dashboard | **5.1 testing infrastructure (Vitest + RTL + MSW) ✅** · pages ⬜ | 🔄 |
 | 6 — Deployment | Docker, tests, docs | ⬜ |
 
 ## Repository layout
@@ -61,6 +61,29 @@ python scripts\evaluate_models.py         # Phase 2.5: unified evaluation -> rep
 python scripts\run_simulator.py start  # Phase 4: IoT simulator (background)
 python scripts\run_simulator.py status  # check simulation status
 ```
+
+## Dashboard (Phase 5)
+
+```powershell
+Set-Location frontend
+npm install          # first time
+npm run dev          # Vite dev server on http://localhost:5173
+npm run build        # typecheck + production bundle -> dist/
+npm run test         # vitest (45 tests)
+npm run test:coverage
+npm run lint / npm run typecheck
+```
+
+React 19 + TypeScript + Tailwind CSS v4 + Recharts. The dashboard talks only to
+the real FastAPI endpoints (`/health`, `/ready`, `/machines`, `/alerts`,
+`/evaluation`, `/machines/{id}/{readings|predictions|health}`) at an editable
+base URL (default `http://127.0.0.1:8000`, persisted in localStorage).
+
+Unit tests never touch the network: MSW (`src/test/mocks/`) replays synthetic
+FastAPI payloads in-memory for every consumed endpoint, including error
+(500/network/timeout) and empty-fleet states; `onUnhandledFrame: \"error\"` fails
+tests that request unmocked URLs. React Testing Library covers render +
+accessibility behaviour (states, badges, sidebar navigation, keyboard focus).
 
 See `docs/preprocessing.md` for the feature workflow, its guarantees and the
 dataset assumptions.

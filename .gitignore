@@ -29,3 +29,9 @@ data/processed/
 # SQLite databases created at runtime by the Phase 3 backend.
 *.db
 data/predictive_maintenance.db
+
+# Frontend (Phase 5 dashboard) install/build/test artefacts. The source under
+# frontend/src, configs and lockfile ARE tracked.
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/

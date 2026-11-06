@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+/*
+ * Industrial dark theme for the Predictive Maintenance control deck.
+ * Palette: deep blue-black backgrounds, desaturated panels, restrained
+ * status accents (teal = healthy, amber = warning, rose = critical,
+ * sky = informational). All accents are AA-contrast on the base surfaces.
+ */
+@theme {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+
+  --color-base: #070d14;
+  --color-panel: #0c1520;
+  --color-panel-2: #101c29;
+  --color-edge: #1b2a3b;
+  --color-edge-bright: #294059;
+
+  --color-ink: #e8eef5;
+  --color-ink-dim: #9daeba;
+  --color-ink-faint: #647684;
+
+  --color-healthy: #2dd4bf;
+  --color-warning: #f5a524;
+  --color-critical: #fb4d5d;
+  --color-info: #5c9bff;
+  --color-accent: #38e1d4;
+
+  --animate-pulse-soft: pulse-soft 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-sweep: sweep 1.8s linear infinite;
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@keyframes sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(1200px 500px at 75% -10%, rgb(29 78 102 / 0.16), transparent 60%),
+    var(--color-base);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* Tabular numerals keep live-updating figures visually stable. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Thin, subtle scrollbars for dense data views. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-edge-bright) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-edge-bright);
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Accessible keyboard focus without clashing with dark surfaces. */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Recharts dark-mode touch-ups. */
+.recharts-cartesian-axis-tick text {
+  fill: var(--color-ink-faint);
+  font-size: 11px;
+}
+.recharts-cartesian-grid line {
+  stroke: rgb(41 64 89 / 0.35);
+}
+.recharts-tooltip-wrapper {
+  outline: none;
+}

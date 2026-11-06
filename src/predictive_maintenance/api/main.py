@@ -18,7 +18,7 @@ from predictive_maintenance import config
 from predictive_maintenance.api import db
 from predictive_maintenance.api.config import get_settings
 from predictive_maintenance.api.dependencies import get_model_service
-from predictive_maintenance.api.routes import alerts, health, machines, predict, readings
+from predictive_maintenance.api.routes import alerts, evaluation, health, machines, predict, readings
 from predictive_maintenance.api.service import (
     IncompatibleConfigurationError,
     ModelNotFoundError,
@@ -73,6 +73,7 @@ def create_app() -> FastAPI:
     app.include_router(readings.router)
     app.include_router(machines.router)
     app.include_router(alerts.router)
+    app.include_router(evaluation.router)
 
     # ------------------------------------------------------------------ error handlers
 
