@@ -9,8 +9,8 @@ import { describe, expect, it } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
-import { HEALTH_OK } from "@/test/mocks/fixtures";
-import { ERROR_HANDLERS } from "@/test/mocks/handlers";
+import { HEALTH_OK, READINESS_OK } from "@/test/mocks/fixtures";
+import { ERROR_HANDLERS, NETWORK_ERROR_HANDLERS } from "@/test/mocks/handlers";
 import { server } from "@/test/mocks/server";
 import { renderFullPath } from "@/test/utils";
 
@@ -71,18 +71,50 @@ describe("SettingsPage", () => {
     expect(window.localStorage.getItem("pma.pollIntervalMs")).toBe("30000");
   });
 
-  it("reports offline state without a retry button on the connectivity row", async () => {
+  it("reports HTTP failure state without a retry button on the connectivity row", async () => {
     server.use(...ERROR_HANDLERS);
     renderFullPath(undefined, "/settings");
 
-    expect(await screen.findByText("offline")).toBeInTheDocument();
+    expect(await screen.findByText("http failure")).toBeInTheDocument();
     expect(screen.getByText("simulated backend failure")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
   });
 
+  it("reports network failure separately from HTTP failure", async () => {
+    server.use(...NETWORK_ERROR_HANDLERS);
+    renderFullPath(undefined, "/settings");
+
+    expect(await screen.findByText("network failure")).toBeInTheDocument();
+    expect(screen.getByText("backend unreachable")).toBeInTheDocument();
+  });
+
+  it("does not report services as fully healthy when readiness is false", async () => {
+    server.use(
+      http.get("http://127.0.0.1:8000/ready", () =>
+        HttpResponse.json({
+          ...READINESS_OK,
+          ready: false,
+          datasets: Object.fromEntries(
+            Object.entries(READINESS_OK.datasets).map(([id, dataset]) => [
+              id,
+              { ...dataset, ready: false },
+            ]),
+          ),
+        }),
+      ),
+    );
+    renderFullPath(undefined, "/settings");
+
+    expect(await screen.findByText("connected")).toBeInTheDocument();
+    expect(screen.getByText(/services not ready/)).toBeInTheDocument();
+  });
+
   it("applies a new backend base URL and keeps connectivity there", async () => {
     // Backend reachable at the alternative base as well.
-    server.use(http.get("http://127.0.0.1:9000/health", () => HttpResponse.json(HEALTH_OK)));
+    server.use(
+      http.get("http://127.0.0.1:9000/health", () => HttpResponse.json(HEALTH_OK)),
+      http.get("http://127.0.0.1:9000/ready", () => HttpResponse.json(READINESS_OK)),
+    );
     renderFullPath(undefined, "/settings");
 
     const user = userEvent.setup();

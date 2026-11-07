@@ -26,6 +26,9 @@ import { SERIES, healthStyle } from "@/lib/health";
 const SENSOR_OPTIONS = new Array(21).fill(0).map((_, i) => `s${i + 1}`);
 const DEFAULT_SENSOR = "s2";
 
+const SELECT_CLASS =
+  "rounded-md border border-edge bg-panel-2 px-2 py-1 text-xs text-ink outline-hidden transition-colors hover:border-edge-bright focus:border-accent/50";
+
 /** Live per-machine monitoring with configurable polling. */
 export function LiveMonitoringPage() {
   const [params, setParams] = useSearchParams();
@@ -94,7 +97,7 @@ export function LiveMonitoringPage() {
               aria-label="Polling interval"
               value={String(pollOverride ?? GLOBAL)}
               onChange={(e) => setPollOverride(e.target.value === GLOBAL ? null : Number(e.target.value))}
-              className="rounded border border-edge bg-panel-2 px-2 py-1 text-xs text-ink"
+              className={SELECT_CLASS}
             >
               <option value={GLOBAL}>Global ({getPollIntervalMs() === 0 ? "off" : `${getPollIntervalMs() / 1000}s`})</option>
               {POLL_INTERVAL_OPTIONS.map((opt) => (
@@ -107,8 +110,8 @@ export function LiveMonitoringPage() {
         }
       />
 
-      {/* Machine selector */}
-      <div className="mb-4 flex flex-wrap items-center gap-3">
+      {/* Machine selector strip */}
+      <div className="mb-5 flex flex-wrap items-center gap-3 rounded-lg border border-edge bg-panel/60 px-3.5 py-2.5">
         <label className="flex items-center gap-2 text-xs text-ink-dim">
           Machine
           {list.length > 0 ? (
@@ -119,7 +122,7 @@ export function LiveMonitoringPage() {
                 const next = e.target.value;
                 updateSearchParams(setParams, next);
               }}
-              className="min-w-44 rounded border border-edge bg-panel-2 px-2 py-1.5 text-sm text-ink"
+              className="min-w-44 rounded-md border border-edge bg-panel-2 px-2 py-1.5 text-sm text-ink outline-hidden transition-colors hover:border-edge-bright focus:border-accent/50"
             >
               {list.map((machine) => (
                 <option key={machine.machine_id} value={machine.machine_id}>
@@ -135,7 +138,7 @@ export function LiveMonitoringPage() {
         {machines.error ? <ErrorState compact message={machines.error.message} onRetry={machines.refetch} /> : null}
 
         {health.data !== null && (
-          <span className={`inline-flex items-center gap-2 rounded border px-2 py-1 text-xs ${style.chip}`}>
+          <span className={`inline-flex items-center gap-2 rounded-md border px-2 py-1 text-xs ${style.chip}`}>
             <span className={`h-2 w-2 rounded-full ${style.dot} ${health.data.active_alerts > 0 ? "animate-pulse-soft" : ""}`} aria-hidden="true" />
             {healthLabel(health.data.health)}
             {health.data.active_alerts > 0 && (
@@ -176,6 +179,10 @@ export function LiveMonitoringPage() {
                     Predicted {formatAgo(latestPrediction.predicted_at)} · <span className="tnum">reading #{latestPrediction.reading_id}</span>
                   </p>
                 </div>
+              ) : health.error || readings.error ? (
+                // Fail fast: a failed machine lookup means no prediction can
+                // ever arrive for this id, so skeletons would only stall UI.
+                <EmptyState compact title="No prediction stored for this machine yet" />
               ) : health.loading ? (
                 <LoadingState rows={2} />
               ) : (
@@ -194,7 +201,7 @@ export function LiveMonitoringPage() {
                     readings.refetch();
                   }}
                   aria-label="Refresh data now"
-                  className="flex items-center gap-1.5 rounded border border-edge bg-panel-2 px-2.5 py-1 text-xs text-ink-dim transition hover:border-accent/40 hover:text-accent"
+                  className="flex items-center gap-1.5 rounded-md border border-edge bg-panel-2 px-2.5 py-1 text-xs text-ink-dim transition-colors hover:border-accent/40 hover:text-accent"
                 >
                   <RefreshCw aria-hidden className="h-3.5 w-3.5" />
                   Refresh
@@ -241,7 +248,7 @@ export function LiveMonitoringPage() {
                   aria-label="Sensor channel"
                   value={sensor}
                   onChange={(e) => setSensor(e.target.value)}
-                  className="rounded border border-edge bg-panel-2 px-2 py-1 text-xs text-ink"
+                  className={SELECT_CLASS}
                 >
                   {SENSOR_OPTIONS.map((name) => (
                     <option key={name} value={name}>

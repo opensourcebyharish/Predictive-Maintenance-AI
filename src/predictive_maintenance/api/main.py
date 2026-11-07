@@ -8,6 +8,8 @@ database are initialized at startup (best effort: failures are reported by
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -26,6 +28,27 @@ from predictive_maintenance.api.service import (
 )
 
 
+@asynccontextmanager
+async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Startup/shutdown lifecycle (replaces the deprecated ``on_event`` hook).
+
+    Startup: load the trained serving artefacts (best effort - ``GET /ready``
+    surfaces per-dataset problems instead of crashing boot). The SQLite
+    schema stays lazily initialized on the first session so tests can
+    override the database URL without startup clobbering it.
+
+    Shutdown: dispose the SQLAlchemy engine's pooled connections so nothing
+    is left dangling on process exit (``db.shutdown_engine`` is idempotent
+    and keeps the engine object usable afterwards).
+    """
+    try:
+        app.state.service.load()
+    except Exception:  # noqa: BLE001 - /ready surfaces load problems
+        pass
+    yield
+    db.shutdown_engine()
+
+
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(
@@ -36,6 +59,7 @@ def create_app() -> FastAPI:
         "alerting on NASA C-MAPSS anomaly + failure models).",
         docs_url="/docs",
         redoc_url="/redoc",
+        lifespan=_lifespan,
     )
 
     # ------------------------------------------------------------------ CORS
@@ -52,19 +76,6 @@ def create_app() -> FastAPI:
 
     app.state.settings = settings
     app.state.service = get_model_service()
-
-    @app.on_event("startup")
-    def _initialize_at_startup() -> None:
-        """Load trained artefacts at startup (best effort).
-
-        The SQLite schema is initialized lazily on first session via
-        ``db.get_session()`` so that tests can override the database URL
-        without the startup event clobbering it.
-        """
-        try:
-            app.state.service.load()
-        except Exception:  # noqa: BLE001 - /ready surfaces load problems
-            pass
 
     # ------------------------------------------------------------------ routers
 

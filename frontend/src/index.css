@@ -2,29 +2,38 @@
 
 /*
  * Industrial dark theme for the Predictive Maintenance control deck.
- * Palette: deep blue-black backgrounds, desaturated panels, restrained
- * status accents (teal = healthy, amber = warning, rose = critical,
- * sky = informational). All accents are AA-contrast on the base surfaces.
+ * Palette: deep navy-charcoal surfaces, hairline borders, single cyan accent
+ * for interaction, and restrained status colors (green = healthy, amber =
+ * warning, red = critical, blue = informational). Every accent keeps AA
+ * contrast on the base surfaces, and the scale is tuned so large surfaces
+ * stay near-monochrome while status color is reserved for data.
  */
 @theme {
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, "Cascadia Mono", "JetBrains Mono", Menlo, Consolas, monospace;
 
-  --color-base: #070d14;
-  --color-panel: #0c1520;
-  --color-panel-2: #101c29;
-  --color-edge: #1b2a3b;
-  --color-edge-bright: #294059;
+  /* Surfaces: base < panel < panel-2 < edge-bright, all desaturated navy. */
+  --color-base: #05090f;
+  --color-panel: #0a121b;
+  --color-panel-2: #0e1826;
+  --color-edge: #16232f;
+  --color-edge-bright: #25384d;
 
-  --color-ink: #e8eef5;
-  --color-ink-dim: #9daeba;
-  --color-ink-faint: #647684;
+  /* Ink hierarchy: primary / secondary / muted. */
+  --color-ink: #e9eff6;
+  --color-ink-dim: #a3b2bf;
+  --color-ink-faint: #6d7f8e;
 
-  --color-healthy: #2dd4bf;
-  --color-warning: #f5a524;
-  --color-critical: #fb4d5d;
-  --color-info: #5c9bff;
-  --color-accent: #38e1d4;
+  /* Status + interaction accents. */
+  --color-healthy: #3ddc97;
+  --color-warning: #fbbf24;
+  --color-critical: #fb5560;
+  --color-info: #6ea8fe;
+  --color-accent: #2dd4ee;
+
+  /* Elevation: faint top highlight + soft ambient drop. */
+  --shadow-panel: inset 0 1px 0 0 rgb(255 255 255 / 0.03), 0 10px 30px -18px rgb(1 4 9 / 0.9);
+  --shadow-pop: 0 16px 40px -16px rgb(1 4 9 / 0.95);
 
   --animate-pulse-soft: pulse-soft 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   --animate-sweep: sweep 1.8s linear infinite;
@@ -55,13 +64,19 @@ html {
 
 body {
   margin: 0;
+  /* Two very low-opacity glows keep the app background from banding flat. */
   background:
-    radial-gradient(1200px 500px at 75% -10%, rgb(29 78 102 / 0.16), transparent 60%),
+    radial-gradient(900px 420px at 78% -12%, rgb(45 212 238 / 0.05), transparent 60%),
+    radial-gradient(720px 380px at -8% 2%, rgb(110 168 254 / 0.04), transparent 55%),
     var(--color-base);
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
+}
+
+::selection {
+  background: rgb(45 212 238 / 0.25);
 }
 
 /* Tabular numerals keep live-updating figures visually stable. */
@@ -93,14 +108,25 @@ body {
   outline-offset: 2px;
 }
 
-/* Recharts dark-mode touch-ups. */
+/* Honour users who opt out of decorative motion. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-soft,
+  .animate-sweep {
+    animation: none;
+  }
+}
+
+/* Recharts dark-mode touch-ups (kept in one place). */
 .recharts-cartesian-axis-tick text {
   fill: var(--color-ink-faint);
   font-size: 11px;
 }
 .recharts-cartesian-grid line {
-  stroke: rgb(41 64 89 / 0.35);
+  stroke: rgb(37 56 77 / 0.32);
 }
 .recharts-tooltip-wrapper {
   outline: none;
+}
+.recharts-surface {
+  overflow: visible;
 }

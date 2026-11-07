@@ -8,7 +8,10 @@ from predictive_maintenance.api.db.models import (
     Reading,
     get_engine,
     get_session,
+    get_session_dependency,
     init_db,
+    readiness_info,
+    shutdown_engine,
 )
 
 __all__ = [
@@ -19,5 +22,8 @@ __all__ = [
     "Reading",
     "get_engine",
     "get_session",
+    "get_session_dependency",
     "init_db",
+    "readiness_info",
+    "shutdown_engine",
 ]

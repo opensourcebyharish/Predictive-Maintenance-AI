@@ -32,13 +32,10 @@ def get_monitoring_service() -> MachineMonitoringService:
 @router.get("/machines", response_model=list[MachineSummary], status_code=status.HTTP_200_OK)
 def list_machines(
     monitoring: MachineMonitoringService = Depends(get_monitoring_service),
-    session: Any = Depends(db.get_session),
+    session: Any = Depends(db.get_session_dependency),
 ) -> list[MachineSummary]:
     """List all ingested machines with their latest health."""
-    try:
-        return monitoring.list_machines(session)
-    finally:
-        session.close()
+    return monitoring.list_machines(session)
 
 
 @router.get(
@@ -49,7 +46,7 @@ def list_machines(
 def get_machine(
     machine_id: str = Path(..., min_length=1, description="Machine / engine identifier"),
     monitoring: MachineMonitoringService = Depends(get_monitoring_service),
-    session: Any = Depends(db.get_session),
+    session: Any = Depends(db.get_session_dependency),
 ) -> MachineDetail:
     """Return full detail for one machine: latest reading, prediction, alerts."""
     detail = monitoring.get_machine(session, machine_id)
@@ -68,7 +65,7 @@ def get_machine_readings(
     limit: int = Query(50, ge=1, le=1000, description="Maximum readings to return"),
     offset: int = Query(0, ge=0, description="Number of readings to skip"),
     monitoring: MachineMonitoringService = Depends(get_monitoring_service),
-    session: Any = Depends(db.get_session),
+    session: Any = Depends(db.get_session_dependency),
 ) -> PaginatedReadings:
     """Paginated chronological reading history for one machine."""
     return monitoring.get_readings(session, machine_id, limit=limit, offset=offset)
@@ -84,7 +81,7 @@ def get_machine_predictions(
     limit: int = Query(50, ge=1, le=1000, description="Maximum predictions to return"),
     offset: int = Query(0, ge=0, description="Number of predictions to skip"),
     monitoring: MachineMonitoringService = Depends(get_monitoring_service),
-    session: Any = Depends(db.get_session),
+    session: Any = Depends(db.get_session_dependency),
 ) -> PaginatedPredictions:
     """Paginated prediction history for one machine (newest first)."""
     return monitoring.get_predictions(session, machine_id, limit=limit, offset=offset)
@@ -97,7 +94,7 @@ def get_machine_predictions(
 def get_machine_health(
     machine_id: str = Path(..., min_length=1),
     monitoring: MachineMonitoringService = Depends(get_monitoring_service),
-    session: Any = Depends(db.get_session),
+    session: Any = Depends(db.get_session_dependency),
 ) -> dict[str, Any]:
     """Latest health snapshot for one machine."""
     health = monitoring.get_health(session, machine_id)

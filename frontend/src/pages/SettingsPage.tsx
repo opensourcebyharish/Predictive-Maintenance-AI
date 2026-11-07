@@ -1,14 +1,18 @@
 import { useCallback, useState } from "react";
 import { Plug, Save, Terminal, Timer } from "lucide-react";
 
-import { fetchHealth } from "@/api/endpoints";
+import { fetchHealth, fetchReadiness } from "@/api/endpoints";
 import { useResource } from "@/api/hooks";
+import { classifyBackendStatus } from "@/lib/backendStatus";
 import { useApiBaseUrl, usePollInterval } from "@/api/useSettings";
 import { DEFAULT_API_BASE_URL, POLL_INTERVAL_OPTIONS } from "@/api/settings";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Panel } from "@/components/ui/Panel";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/States";
+
+const INPUT_CLASS =
+  "w-full rounded-md border border-edge bg-panel-2 px-2.5 py-1.5 text-sm text-ink outline-hidden transition-colors placeholder:text-ink-faint hover:border-edge-bright focus:border-accent/50";
 
 /** Connection, polling, alert thresholds, simulator instructions. */
 export function SettingsPage() {
@@ -17,12 +21,15 @@ export function SettingsPage() {
   const [draftUrl, setDraftUrl] = useState(baseUrl);
 
   const connectivity = useResource(() => fetchHealth(), undefined, { pollMs: 15000 });
-  const connected = connectivity.error === null;
+  const readiness = useResource(() => fetchReadiness(), undefined, { pollMs: 15000 });
+  const status = classifyBackendStatus({ health: connectivity, readiness, online: null });
+  const statusError = connectivity.error ?? readiness.error;
 
   const applyUrl = useCallback(() => {
     setBaseUrl(draftUrl);
     connectivity.refetch();
-  }, [draftUrl, connectivity, setBaseUrl]);
+    readiness.refetch();
+  }, [draftUrl, connectivity, readiness, setBaseUrl]);
 
   return (
     <>
@@ -43,12 +50,12 @@ export function SettingsPage() {
                   onChange={(e) => setDraftUrl(e.target.value)}
                   placeholder={DEFAULT_API_BASE_URL}
                   aria-label="API base URL"
-                  className="w-full rounded border border-edge bg-panel-2 px-2.5 py-1.5 text-sm text-ink placeholder:text-ink-faint"
+                  className={INPUT_CLASS}
                 />
                 <button
                   type="button"
                   onClick={applyUrl}
-                  className="flex shrink-0 items-center gap-1.5 rounded border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent transition hover:bg-accent/20"
+                  className="flex shrink-0 items-center gap-1.5 rounded-md border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent transition-colors hover:bg-accent/20"
                 >
                   <Save aria-hidden className="h-3.5 w-3.5" />
                   Apply
@@ -58,27 +65,29 @@ export function SettingsPage() {
 
             <div className="flex flex-wrap items-center gap-2 text-xs">
               <span className="text-ink-faint">Status</span>
-              {connected ? (
-                <>
-                  <Badge tone="healthy">connected</Badge>
-                  <span className="text-ink-dim">
-                    {connectivity.data?.app ?? "api"} v{connectivity.data?.version ?? "—"}
-                    {connectivity.data?.service_loaded ? " · models loaded" : " · models not loaded"}
-                  </span>
-                </>
-              ) : connectivity.loading ? (
+              {status === "connecting" ? (
                 <LoadingState rows={1} />
+              ) : status === "network-failure" || status === "http-failure" ? (
+                <>
+                  <Badge tone="critical">{status === "network-failure" ? "network failure" : "http failure"}</Badge>
+                  <ErrorState compact message={statusError?.message ?? "Cannot reach backend"} />
+                </>
               ) : (
                 <>
-                  <Badge tone="critical">offline</Badge>
-                  <ErrorState compact message={connectivity.error?.message ?? "Cannot reach backend"} />
+                  <Badge tone={status === "healthy" ? "healthy" : "warning"}>connected</Badge>
+                  <span className="text-ink-dim">
+                    {connectivity.data?.app ?? "api"} v{connectivity.data?.version ?? "—"}
+                    {status === "healthy"
+                      ? " · models loaded · services ready"
+                      : " · services not ready"}
+                  </span>
                 </>
               )}
             </div>
             <p className="text-[11px] text-ink-faint">
-              Default: <code className="rounded bg-white/6 px-1">{DEFAULT_API_BASE_URL}</code>. Set
-              {" "}<code className="rounded bg-white/6 px-1">VITE_API_BASE_URL</code> at build time or change here (persisted in
-              this browser). CORS on the backend defaults to <code className="rounded bg-white/6 px-1">*</code>.
+              Default: <code className="rounded bg-white/6 px-1 font-mono">{DEFAULT_API_BASE_URL}</code>. Set
+              {" "}<code className="rounded bg-white/6 px-1 font-mono">VITE_API_BASE_URL</code> at build time or change here (persisted in
+              this browser). CORS on the backend defaults to <code className="rounded bg-white/6 px-1 font-mono">*</code>.
             </p>
           </div>
         </Panel>
@@ -92,7 +101,7 @@ export function SettingsPage() {
                 aria-label="Global polling interval"
                 value={pollMs}
                 onChange={(e) => setPollMs(Number(e.target.value))}
-                className="rounded border border-edge bg-panel-2 px-2 py-1 text-xs text-ink"
+                className="rounded-md border border-edge bg-panel-2 px-2 py-1 text-xs text-ink outline-hidden transition-colors hover:border-edge-bright focus:border-accent/50"
               >
                 {POLL_INTERVAL_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -127,7 +136,7 @@ export function SettingsPage() {
                 <p className="text-xs text-ink-dim">
                   Start the backend, then run the CLI from the project root:
                 </p>
-                <div className="space-y-1 rounded border border-edge bg-panel-2 p-3 font-mono text-[11px] leading-5 text-ink">
+                <div className="space-y-1 rounded-md border border-edge bg-base/80 p-3 font-mono text-[11px] leading-5 text-ink">
                   <p><Terminal aria-hidden className="mr-1 inline h-3 w-3 text-accent" />.venv\Scripts\python.exe -m uvicorn predictive_maintenance.api.main:app --app-dir src</p>
                   <p>python scripts\run_simulator.py start --machines 4 --scenario developing_degradation</p>
                   <p>python scripts\run_simulator.py scenario abnormal_vibration</p>

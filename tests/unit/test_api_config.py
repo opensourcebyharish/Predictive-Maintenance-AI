@@ -47,7 +47,7 @@ class TestSettingsDefaults:
         settings = config.get_settings()
         data = settings.to_dict()
         assert set(data) == {
-            "app_name", "app_version", "host", "port", "model_dir", "cors_origins",
+            "app_name", "app_version", "env", "host", "port", "model_dir", "cors_origins",
             "log_level", "database_url", "alert_elevated_failure", "alert_critical_failure",
             "alert_anomaly_enabled",
         }

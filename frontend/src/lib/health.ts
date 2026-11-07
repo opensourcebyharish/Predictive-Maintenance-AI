@@ -14,6 +14,8 @@ interface HealthStyle {
   dot: string;
   chip: string;
   bar: string;
+  /** Soft rail color for row-level severity signalling. */
+  rail: string;
 }
 
 /** Tailwind classes for each health state (dark industrial palette). */
@@ -25,6 +27,7 @@ export const HEALTH_STYLES: Record<MachineHealth, HealthStyle> = {
     dot: "bg-healthy",
     chip: "bg-healthy/10 text-healthy border-healthy/30",
     bar: "bg-healthy",
+    rail: "border-l-healthy",
   },
   anomalous: {
     tone: "warning",
@@ -33,6 +36,7 @@ export const HEALTH_STYLES: Record<MachineHealth, HealthStyle> = {
     dot: "bg-warning",
     chip: "bg-warning/10 text-warning border-warning/30",
     bar: "bg-warning",
+    rail: "border-l-warning",
   },
   elevated_risk: {
     tone: "warning",
@@ -41,6 +45,7 @@ export const HEALTH_STYLES: Record<MachineHealth, HealthStyle> = {
     dot: "bg-warning",
     chip: "bg-warning/10 text-warning border-warning/30",
     bar: "bg-warning",
+    rail: "border-l-warning",
   },
   critical_risk: {
     tone: "critical",
@@ -49,6 +54,7 @@ export const HEALTH_STYLES: Record<MachineHealth, HealthStyle> = {
     dot: "bg-critical",
     chip: "bg-critical/10 text-critical border-critical/30",
     bar: "bg-critical",
+    rail: "border-l-critical",
   },
   unknown: {
     tone: "neutral",
@@ -57,6 +63,7 @@ export const HEALTH_STYLES: Record<MachineHealth, HealthStyle> = {
     dot: "bg-ink-faint",
     chip: "bg-white/5 text-ink-dim border-white/10",
     bar: "bg-ink-faint",
+    rail: "border-l-edge-bright",
   },
 };
 
@@ -85,11 +92,11 @@ export function healthScore(health: string): number {
   }
 }
 
-export const SEVERITY_STYLES: Record<AlertSeverity, { chip: string; label: string }> = {
-  low: { chip: "bg-white/5 text-ink-dim border-white/10", label: "Low" },
-  medium: { chip: "bg-info/10 text-info border-info/30", label: "Medium" },
-  high: { chip: "bg-warning/10 text-warning border-warning/30", label: "High" },
-  critical: { chip: "bg-critical/10 text-critical border-critical/30", label: "Critical" },
+export const SEVERITY_STYLES: Record<AlertSeverity, { chip: string; label: string; rail: string }> = {
+  low: { chip: "bg-white/5 text-ink-dim border-white/10", label: "Low", rail: "bg-edge-bright" },
+  medium: { chip: "bg-info/10 text-info border-info/30", label: "Medium", rail: "bg-info" },
+  high: { chip: "bg-warning/10 text-warning border-warning/30", label: "High", rail: "bg-warning" },
+  critical: { chip: "bg-critical/10 text-critical border-critical/30", label: "Critical", rail: "bg-critical" },
 };
 
 export const ALERT_STATUS_STYLES: Record<AlertStatus, { chip: string; label: string }> = {
@@ -105,13 +112,17 @@ export const ALERT_TYPE_LABELS: Record<AlertType, string> = {
   machine_recovered: "Machine recovered",
 };
 
-/** Series colors used across Recharts visualisations. */
+/** Series colors used across Recharts visualisations (mirror --color-* tokens). */
 export const SERIES = {
-  healthy: "#2dd4bf",
-  warning: "#f5a524",
-  critical: "#fb4d5d",
-  info: "#5c9bff",
-  accent: "#38e1d4",
-  dim: "#647684",
+  healthy: "#3ddc97",
+  warning: "#fbbf24",
+  critical: "#fb5560",
+  info: "#6ea8fe",
+  accent: "#2dd4ee",
+  dim: "#6d7f8e",
   violet: "#a78bfa",
+  edge: "#16232f",
+  edgeBright: "#25384d",
+  panel: "#0a121b",
+  panel2: "#0e1826",
 } as const;

@@ -57,10 +57,51 @@ describe("AnalyticsPage", () => {
   it("honours the dataset URL parameter on load", async () => {
     renderFullPath(undefined, "/analytics?dataset=FD003");
 
-    // FD003 default model is xgboost; metric tiles prefer the random_forest
-    // entry (page reads models.random_forest first), fixture f1 0.83.
-    expect(await screen.findByText("83.000%")).toBeInTheDocument();
+    // FD003's default supervised model is xgboost, so the displayed tiles are
+    // the xgboost validation metrics (f1 .84), not random_forest's (.83).
+    expect(await screen.findByText("84.000%")).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText("FD003 · xgboost")).toBeInTheDocument());
+  });
+
+  it.each([
+    {
+      dataset: "FD001",
+      model: "random_forest",
+      f1: "81.000%",
+      testF1: "51.000%",
+      confusion: ["2900", "320", "85", "547"] as const,
+    },
+    {
+      dataset: "FD002",
+      model: "random_forest",
+      f1: "72.000%",
+      testF1: "39.000%",
+      confusion: ["3500", "640", "470", "1483"] as const,
+    },
+    {
+      dataset: "FD003",
+      model: "xgboost",
+      f1: "84.000%",
+      testF1: "57.000%",
+      confusion: ["2740", "240", "106", "824"] as const,
+    },
+    {
+      dataset: "FD004",
+      model: "xgboost",
+      f1: "70.000%",
+      testF1: "34.000%",
+      confusion: ["2140", "570", "540", "1530"] as const,
+    },
+  ])("uses the default supervised model for $dataset", async ({ dataset, model, f1, testF1, confusion }) => {
+    renderFullPath(undefined, `/analytics?dataset=${dataset}`);
+
+    // Benchmark label and metric source must describe the same model.
+    expect(await screen.findByText(f1)).toBeInTheDocument();
+    expect(screen.getByText(`${dataset} · ${model}`)).toBeInTheDocument();
+    expect(screen.getByText(testF1)).toBeInTheDocument();
+    for (const cell of confusion) {
+      expect(screen.getByText(cell)).toBeInTheDocument();
+    }
   });
 
   it("switches datasets through the select and refetches the report", async () => {
@@ -71,7 +112,7 @@ describe("AnalyticsPage", () => {
     expect(within(datasetSelect).getAllByRole("option")).toHaveLength(4);
     await userEvent.setup().selectOptions(datasetSelect, "FD003");
 
-    expect(await screen.findByText("83.000%")).toBeInTheDocument();
+    expect(await screen.findByText("84.000%")).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText("FD003 · xgboost")).toBeInTheDocument());
     expect(screen.queryByText("81.000%")).not.toBeInTheDocument();
   });

@@ -260,3 +260,171 @@ class TestAlertSummary:
         assert "by_severity" in body
         assert "active_by_machine" in body
         assert isinstance(body["total"], int)
+
+
+class TestAlertRecovery:
+    @staticmethod
+    def _session() -> Any:
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import sessionmaker
+
+        from predictive_maintenance.api.db.models import Base
+
+        engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+        Base.metadata.create_all(engine)
+        return sessionmaker(bind=engine)()
+
+    @staticmethod
+    def _prediction(
+        failure_probability: float,
+        *,
+        anomaly_status: bool = False,
+    ) -> Any:
+        from predictive_maintenance.api.schemas import PredictionResponse
+
+        return PredictionResponse(
+            dataset_id=DATASET_ID,
+            model="random_forest",
+            model_version="FD001:random_forest@test123456789",
+            predicted_at=datetime.now(timezone.utc),
+            anomaly_score=0.9 if anomaly_status else 0.1,
+            anomaly_status=anomaly_status,
+            failure_probability=failure_probability,
+            failure_status=failure_probability >= 0.5,
+        )
+
+    def test_anomaly_prediction_creates_linked_alert(self) -> None:
+        session = self._session()
+        try:
+            service = AlertService(
+                elevated_threshold=0.5, critical_threshold=0.8, anomaly_enabled=True
+            )
+            service.evaluate(
+                session,
+                "M-ANOMALY",
+                self._prediction(0.1, anomaly_status=True),
+                prediction_id=123,
+            )
+
+            alerts = session.query(db.Alert).all()
+            assert len(alerts) == 1
+            alert = alerts[0]
+            assert alert.alert_type == "anomaly_detected"
+            assert alert.severity == "medium"
+            assert alert.status == "active"
+            assert alert.prediction_id == 123
+            assert alert.model_version == "FD001:random_forest@test123456789"
+        finally:
+            session.close()
+
+    def test_healthy_prediction_resolves_active_alert_and_emits_recovery(self) -> None:
+        session = self._session()
+        try:
+            service = AlertService(
+                elevated_threshold=0.5, critical_threshold=0.8, anomaly_enabled=True
+            )
+            service.evaluate(session, "M-RECOVER", self._prediction(0.9), prediction_id=101)
+            service.evaluate(session, "M-RECOVER", self._prediction(0.1), prediction_id=102)
+
+            alerts = {alert.alert_type: alert for alert in session.query(db.Alert).all()}
+            assert alerts["critical_failure_risk"].status == "resolved"
+            assert alerts["critical_failure_risk"].resolved_at is not None
+            recovery = alerts["machine_recovered"]
+            assert recovery.status == "active"
+            assert recovery.severity == "low"
+            assert recovery.prediction_id == 102
+        finally:
+            session.close()
+
+    def test_no_recovery_without_prior_alert(self) -> None:
+        session = self._session()
+        try:
+            service = AlertService(
+                elevated_threshold=0.5, critical_threshold=0.8, anomaly_enabled=True
+            )
+            service.evaluate(session, "M-HEALTHY", self._prediction(0.1), prediction_id=1)
+
+            assert session.query(db.Alert).count() == 0
+        finally:
+            session.close()
+
+    def test_recovery_is_not_repeated_for_consecutive_healthy_predictions(self) -> None:
+        session = self._session()
+        try:
+            service = AlertService(
+                elevated_threshold=0.5, critical_threshold=0.8, anomaly_enabled=True
+            )
+            service.evaluate(session, "M-RECOVER-ONCE", self._prediction(0.9), prediction_id=1)
+            service.evaluate(session, "M-RECOVER-ONCE", self._prediction(0.1), prediction_id=2)
+            service.evaluate(session, "M-RECOVER-ONCE", self._prediction(0.05), prediction_id=3)
+
+            recovered = session.query(db.Alert).filter_by(alert_type="machine_recovered").all()
+            assert len(recovered) == 1
+        finally:
+            session.close()
+
+    def test_type_transition_resolves_previous_alert(self) -> None:
+        session = self._session()
+        try:
+            service = AlertService(
+                elevated_threshold=0.5, critical_threshold=0.8, anomaly_enabled=True
+            )
+            service.evaluate(session, "M-TRANSITION", self._prediction(0.9), prediction_id=1)
+            service.evaluate(session, "M-TRANSITION", self._prediction(0.6), prediction_id=2)
+            service.evaluate(
+                session,
+                "M-TRANSITION",
+                self._prediction(0.1, anomaly_status=True),
+                prediction_id=3,
+            )
+
+            alerts = {alert.alert_type: alert for alert in session.query(db.Alert).all()}
+            assert alerts["critical_failure_risk"].status == "resolved"
+            assert alerts["elevated_failure_risk"].status == "resolved"
+            assert alerts["anomaly_detected"].status == "active"
+            assert alerts["anomaly_detected"].prediction_id == 3
+            assert "machine_recovered" not in alerts
+        finally:
+            session.close()
+
+    def test_acknowledged_alert_is_not_resolved_by_recovery(self) -> None:
+        session = self._session()
+        try:
+            service = AlertService(
+                elevated_threshold=0.5, critical_threshold=0.8, anomaly_enabled=True
+            )
+            service.evaluate(session, "M-ACKED", self._prediction(0.9), prediction_id=1)
+            active = session.query(db.Alert).filter_by(status="active").one()
+            active.status = "acknowledged"
+            session.flush()
+
+            service.evaluate(session, "M-ACKED", self._prediction(0.1), prediction_id=2)
+
+            alerts = session.query(db.Alert).all()
+            assert len(alerts) == 1
+            assert alerts[0].status == "acknowledged"
+            assert alerts[0].resolved_at is None
+        finally:
+            session.close()
+
+    def test_acknowledged_alert_does_not_block_new_alert_of_same_type(self) -> None:
+        session = self._session()
+        try:
+            service = AlertService(
+                elevated_threshold=0.5, critical_threshold=0.8, anomaly_enabled=True
+            )
+            service.evaluate(session, "M-ACKED-NEW", self._prediction(0.9), prediction_id=1)
+            active = session.query(db.Alert).filter_by(status="active").one()
+            active.status = "acknowledged"
+            session.flush()
+
+            service.evaluate(session, "M-ACKED-NEW", self._prediction(0.9), prediction_id=2)
+
+            statuses = [
+                alert.status
+                for alert in session.query(db.Alert).filter_by(alert_type="critical_failure_risk").all()
+            ]
+            assert statuses.count("acknowledged") == 1
+            assert statuses.count("active") == 1
+        finally:
+            session.close()

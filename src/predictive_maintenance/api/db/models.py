@@ -23,7 +23,9 @@ The database URL is environment-driven: ``API_DATABASE_URL`` (default
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy import (
@@ -140,12 +142,24 @@ _SessionLocal: Any = None
 
 
 def _normalize_sqlite_url(url: str) -> str:
-    """Resolve relative SQLite paths against the project root (config.ROOT)."""
+    """Resolve relative SQLite paths against the project root (config.ROOT).
+
+    Absolute paths pass through untouched: on POSIX an absolute path is
+    spelled with four slashes (``sqlite:////abs/dir/app.db``), and on Windows
+    a drive-letter path (``sqlite:///C:/data/app.db``) starts with a letter +
+    ``:`` prefix that would otherwise be misread as a project-relative path.
+    """
     if url.startswith("sqlite:///"):
         from predictive_maintenance import config
 
         relative = url[len("sqlite:///") :]
-        if not relative.startswith("/") and not relative.startswith(":"):
+        is_windows_drive = len(relative) > 1 and relative[1] == ":"
+        if (
+            relative
+            and not relative.startswith("/")
+            and not relative.startswith(":")
+            and not is_windows_drive
+        ):
             return "sqlite:///" + str(config.ROOT / relative)
     return url
 
@@ -160,6 +174,13 @@ def init_db(database_url: str | None = None) -> Any:
     settings = get_settings()
     url = database_url or settings.database_url
     url = _normalize_sqlite_url(url)
+    if url.startswith("sqlite:///"):
+        sqlite_path = url[len("sqlite:///") :]
+        # SQLite creates the database file on demand but never the missing
+        # parent directories: create the folder so a fresh checkout/container
+        # volume does not fail with "unable to open database file".
+        if sqlite_path and not sqlite_path.startswith(":"):
+            Path(sqlite_path).parent.mkdir(parents=True, exist_ok=True)
     engine = create_engine(url, connect_args={"check_same_thread": False} if url.startswith("sqlite") else {})
     Base.metadata.create_all(engine)
     _engine = engine
@@ -174,7 +195,65 @@ def get_session() -> Any:
     return _SessionLocal()
 
 
+def get_session_dependency() -> Iterator[Any]:
+    """FastAPI request-scoped session, guaranteed to be closed.
+
+    ``get_session`` returns a bare session, which suits programmatic callers
+    but gives FastAPI no teardown hook; a route that relies on it leaks the
+    pooled connection until GC. SQLite connections are pooled (5 + 10
+    overflow), so leaked sessions eventually exhaust the pool and DB-backed
+    requests hang for ``pool_timeout`` (30s) and then fail. Every route must
+    therefore acquire its session through this generator dependency.
+    """
+    session = get_session()
+    try:
+        yield session
+    finally:
+        session.close()
+
+
 def get_engine() -> Any:
     if _engine is None:
         init_db()
     return _engine
+
+
+def shutdown_engine() -> None:
+    """Release the engine's pooled connections (application shutdown hook).
+
+    Idempotent and safe to call before initialization (no-op). The module
+    globals are deliberately NOT reset: a disposed engine remains usable, so
+    any ``get_session()`` after shutdown transparently opens a fresh pooled
+    connection against the same database - this mirrors the restart-safe
+    pattern the persistence tests rely on and avoids lazily re-initializing
+    against a different URL.
+    """
+    if _engine is not None:
+        _engine.dispose()
+
+
+def readiness_info(database_url: str | None = None) -> dict[str, Any]:
+    """Side-effect-free database snapshot for ``GET /ready`` (additive field).
+
+    Reports what is *configured* and what exists *now*; it never creates the
+    engine or the schema, so operators can distinguish "configured but not
+    yet initialized" from "initialized and reachable". SQLite single-writer
+    concurrency is a documented deployment limitation (see docs/deployment.md)
+    and is not measured here.
+
+    * ``driver``       - ``sqlite`` or ``other`` (from the URL only)
+    * ``initialized``  - the process engine already exists (bool)
+    * ``file``/``file_exists`` - SQLite only: resolved file path and presence
+    """
+    url = _normalize_sqlite_url(database_url or get_settings().database_url)
+    info: dict[str, Any] = {
+        "driver": "sqlite" if url.startswith("sqlite") else "other",
+        "initialized": _engine is not None,
+    }
+    if url.startswith("sqlite:///"):
+        raw = url[len("sqlite:///") :]
+        if raw and not raw.startswith(":"):
+            path = Path(raw)
+            info["file"] = str(path)
+            info["file_exists"] = path.is_file()
+    return info

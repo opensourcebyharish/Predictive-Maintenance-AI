@@ -1,4 +1,10 @@
-"""Phase 3.1: health and readiness endpoints."""
+"""Phase 3.1: health and readiness endpoints.
+
+Phase 6.1: ``GET /ready`` additionally carries an additive, informational
+``database`` block produced by :func:`db.readiness_info` (driver, whether the
+process engine is initialized, resolved SQLite file + presence). Consuming
+clients can ignore unknown keys, so the existing contract is unchanged.
+"""
 
 from __future__ import annotations
 
@@ -6,6 +12,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends
 
+from predictive_maintenance.api import db
 from predictive_maintenance.api.config import Settings
 from predictive_maintenance.api.dependencies import get_model_service, get_settings
 from predictive_maintenance.api.service import ModelService
@@ -25,6 +32,15 @@ def health(settings: Settings = Depends(get_settings), service: ModelService = D
 
 
 @router.get("/ready")
-def ready(service: ModelService = Depends(get_model_service)) -> dict[str, Any]:
-    """Readiness check: are the required preprocessing artefacts and models loaded?"""
-    return service.readiness()
+def ready(
+    settings: Settings = Depends(get_settings), service: ModelService = Depends(get_model_service)
+) -> dict[str, Any]:
+    """Readiness: are the required preprocessing artefacts and models loaded.
+
+    The top-level ``ready`` flag concerns the *model* artifacts only; the
+    additive ``database`` block reports configured/observed database state
+    without ever initializing anything.
+    """
+    payload = service.readiness()
+    payload["database"] = db.readiness_info(settings.database_url)
+    return payload

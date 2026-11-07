@@ -32,7 +32,7 @@ def list_alerts(
     offset: int = Query(0, ge=0),
     machine_id: str | None = Query(None, description="Filter by machine id"),
     status: str | None = Query(None, description="Filter by alert status (active/acknowledged/resolved)"),
-    session: Any = Depends(db.get_session),
+    session: Any = Depends(db.get_session_dependency),
 ) -> list[AlertRecord]:
     """List alerts with optional machine / status filtering and pagination."""
     query = session.query(db.Alert)
@@ -45,7 +45,7 @@ def list_alerts(
 
 
 @router.get("/alerts/summary", response_model=AlertSummary, status_code=status.HTTP_200_OK)
-def alerts_summary(session: Any = Depends(db.get_session)) -> AlertSummary:
+def alerts_summary(session: Any = Depends(db.get_session_dependency)) -> AlertSummary:
     """Aggregate alert counts by status, type, severity and machine."""
     rows = session.query(db.Alert).all()
     by_status: dict[str, int] = {}
@@ -75,7 +75,7 @@ def alerts_summary(session: Any = Depends(db.get_session)) -> AlertSummary:
 def acknowledge_alert(
     alert_id: int = Path(..., ge=1, description="Alert identifier"),
     request: AlertAcknowledgeRequest | None = None,
-    session: Any = Depends(db.get_session),
+    session: Any = Depends(db.get_session_dependency),
 ) -> AlertAcknowledgeResponse:
     """Acknowledge an active alert."""
     alert = session.query(db.Alert).filter_by(id=alert_id).first()

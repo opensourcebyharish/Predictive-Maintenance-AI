@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Activity, AlertTriangle, Cpu, HeartPulse, ShieldAlert, Timer } from "lucide-react";
+import { Activity, AlertTriangle, ArrowRight, Cpu, HeartPulse, ShieldAlert, Timer } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { fetchAlerts, fetchAlertSummary, fetchMachines } from "@/api/endpoints";
@@ -75,9 +75,9 @@ export function OverviewPage() {
       {machines.error ? (
         <ErrorState message={machines.error.message} onRetry={machines.refetch} />
       ) : (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
           {data === null ? (
-            [...Array(5)].map((_, i) => <Skeleton key={i} className="h-24" />)
+            [...Array(5)].map((_, i) => <Skeleton key={i} className="h-[104px]" />)
           ) : (
             <>
               <StatTile index={0} label="Machines" value={counts.total} icon={<Cpu aria-hidden className="h-4 w-4" />} hint="ingested devices" />
@@ -90,7 +90,7 @@ export function OverviewPage() {
         </div>
       )}
 
-      <div className="mt-4 grid gap-4 xl:grid-cols-3">
+      <div className="mt-5 grid gap-4 xl:grid-cols-3">
         <Panel title="Machine health distribution" subtitle="Share of fleet per health verdict">
           {data === null && !machines.error ? (
             <LoadingState rows={2} />
@@ -114,7 +114,7 @@ export function OverviewPage() {
               title="No machines have ingested readings yet"
               hint={
                 <>
-                  Start the Phase 4 simulator (see Settings ▸ Simulator) or POST to <code className="rounded bg-white/6 px-1">/readings</code>
+                  Start the Phase 4 simulator (see Settings ▸ Simulator) or POST to <code className="rounded bg-white/6 px-1 font-mono">/readings</code>
                   {" "}to populate the fleet.
                 </>
               }
@@ -122,8 +122,8 @@ export function OverviewPage() {
           ) : (
             <div className="max-h-[320px] overflow-auto">
               <table className="w-full text-left text-sm">
-                <thead className="sticky top-0 bg-panel-2 text-[11px] tracking-wide text-ink-faint uppercase">
-                  <tr>
+                <thead className="sticky top-0 z-10 bg-panel-2 text-[11px] tracking-wide text-ink-faint uppercase">
+                  <tr className="[&>th]:border-b [&>th]:border-edge">
                     <th scope="col" className="px-4 py-2 font-medium">Machine</th>
                     <th scope="col" className="px-4 py-2 font-medium">Dataset</th>
                     <th scope="col" className="px-4 py-2 font-medium">Health</th>
@@ -134,24 +134,35 @@ export function OverviewPage() {
                 <tbody>
                   {(data ?? []).map((machine) => {
                     const style = healthStyle(machine.health);
+                    const critical = machine.health === "critical_risk";
                     return (
-                      <tr key={machine.machine_id} className="border-t border-edge/60 hover:bg-white/2">
+                      <tr
+                        key={machine.machine_id}
+                        className="group border-t border-edge/60 transition-colors duration-150 hover:bg-panel-2/60"
+                      >
                         <td className="px-4 py-2">
-                          <Link to={`/devices/${encodeURIComponent(machine.machine_id)}`} className="font-medium text-ink hover:text-accent">
+                          <Link
+                            to={`/devices/${encodeURIComponent(machine.machine_id)}`}
+                            className={`tnum font-medium transition-colors group-hover:text-accent ${critical ? "text-ink" : "text-ink"}`}
+                          >
                             {shortId(machine.machine_id)}
                           </Link>
                         </td>
-                        <td className="px-4 py-2 text-ink-dim">{machine.dataset_id}</td>
+                        <td className="px-4 py-2 text-ink-faint">
+                          <span className="rounded border border-edge bg-panel-2/60 px-1.5 py-0.5 text-[11px] tracking-wide">
+                            {machine.dataset_id}
+                          </span>
+                        </td>
                         <td className="px-4 py-2">
                           <span className="inline-flex items-center gap-2">
-                            <span className={`h-2 w-2 rounded-full ${style.dot}`} aria-hidden="true" />
+                            <span className={`h-2 w-2 rounded-full ${style.dot} ${critical ? "animate-pulse-soft" : ""}`} aria-hidden="true" />
                             <span className={style.text}>{style.label}</span>
                           </span>
                         </td>
                         <td className="tnum px-4 py-2 text-ink-dim">
                           {machine.first_cycle !== null ? `${machine.first_cycle}–${machine.last_cycle}` : "—"}
                         </td>
-                        <td className="px-4 py-2 text-ink-dim">{formatAgo(machine.latest_reading_at)}</td>
+                        <td className="px-4 py-2 text-ink-faint">{formatAgo(machine.latest_reading_at)}</td>
                       </tr>
                     );
                   })}
@@ -162,14 +173,18 @@ export function OverviewPage() {
         </Panel>
       </div>
 
-      <div className="mt-4">
+      <div className="mt-5">
         <Panel
           title="Recent incidents"
           subtitle="Newest alerts across the fleet"
           flush
           actions={
-            <Link to="/alerts" className="text-xs font-medium text-accent hover:underline">
+            <Link
+              to="/alerts"
+              className="inline-flex items-center gap-1 rounded-md text-xs font-medium text-accent transition-colors hover:text-accent/80"
+            >
               View all →
+              <ArrowRight aria-hidden className="h-3 w-3" />
             </Link>
           }
         >
@@ -193,10 +208,14 @@ export function OverviewPage() {
                   <motion.li
                     key={alert.id}
                     variants={{ hidden: { opacity: 0, y: 6 }, visible: { opacity: 1, y: 0 } }}
-                    className="flex flex-wrap items-center gap-2 px-4 py-2.5"
+                    className="relative flex flex-wrap items-center gap-2 px-4 py-2.5 transition-colors duration-150 hover:bg-panel-2/60"
                   >
-                    <span className={`h-1.5 w-1.5 rounded-full ${alert.status === "active" ? "bg-warning animate-pulse-soft" : "bg-ink-faint"}`} aria-hidden="true" />
-                    <span className="text-sm font-medium text-ink">{ALERT_TYPE_LABELS[alert.alert_type]}</span>
+                    {/* Severity rail */}
+                    <span
+                      aria-hidden="true"
+                      className={`absolute top-2 bottom-2 left-0 w-0.5 rounded-full ${alert.status === "resolved" ? "bg-edge/80" : severity.rail} ${alert.status === "active" ? "animate-pulse-soft" : ""}`}
+                    />
+                    <span className="pl-1 text-sm font-medium text-ink">{ALERT_TYPE_LABELS[alert.alert_type]}</span>
                     <Badge tone={severityTone(alert.severity)}>
                       {severity.label}
                     </Badge>
@@ -204,7 +223,7 @@ export function OverviewPage() {
                       {status.label}
                     </Badge>
                     <span className="text-xs text-ink-faint">on</span>
-                    <Link to={`/devices/${encodeURIComponent(alert.machine_id)}`} className="text-xs font-medium text-ink hover:text-accent">
+                    <Link to={`/devices/${encodeURIComponent(alert.machine_id)}`} className="tnum text-xs font-medium text-ink transition-colors hover:text-accent">
                       {shortId(alert.machine_id)}
                     </Link>
                     <span className="ml-auto text-xs text-ink-faint">{formatAgo(alert.created_at)}</span>

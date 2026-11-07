@@ -267,3 +267,94 @@ class TestMachineMonitoringIntegration:
         found = [p for p in preds if p["reading_id"] == reading_id]
         assert len(found) == 1
         assert found[0]["machine_id"] == "MON4"
+
+
+class TestPersistenceAcrossRestart:
+    def test_readings_predictions_and_alert_acknowledgement_survive_restart(self, tmp_path: Any) -> None:
+        model_root = tmp_path / "models"
+        _fit_pipeline_and_models(model_root)
+        service = ModelService(model_dir=model_root)
+        service.load()
+
+        db_path = tmp_path / "restart.db"
+        if db_path.exists():
+            db_path.unlink()
+        database_url = f"sqlite:///{db_path}"
+        db.init_db(database_url)
+        session = db.get_session()
+        for table in reversed(db.Base.metadata.sorted_tables):
+            session.execute(table.delete())
+        session.commit()
+        session.close()
+
+        app = create_app()
+        app.dependency_overrides[get_model_service] = lambda: service
+        with TestClient(app) as client:
+            for cycle in range(1, 6):
+                response = client.post(
+                    "/readings",
+                    json=_reading("PERSIST", cycle=cycle, s8=50000.0, s9=50000.0),
+                )
+                assert response.status_code == 200, response.text
+
+            response = client.get("/alerts?machine_id=PERSIST&status=active&limit=100")
+            assert response.status_code == 200, response.text
+            active_alerts = response.json()
+            assert active_alerts, "the extreme simulated series should create an active alert"
+            alert_id = active_alerts[0]["id"]
+
+            response = client.post(
+                f"/alerts/{alert_id}/acknowledge",
+                json={"acknowledged_by": "restart-operator"},
+            )
+            assert response.status_code == 200, response.text
+            assert response.json()["status"] == "acknowledged"
+
+        # Simulate a process restart: close the engine, then initialize the
+        # same database without clearing any tables.
+        db.get_engine().dispose()
+        db.init_db(database_url)
+
+        restarted_service = ModelService(model_dir=model_root)
+        restarted_service.load()
+        restarted_app = create_app()
+        restarted_app.dependency_overrides[get_model_service] = lambda: restarted_service
+
+        with TestClient(restarted_app) as client:
+            response = client.get("/machines/PERSIST/readings?limit=100")
+            assert response.status_code == 200, response.text
+            readings = response.json()
+            assert readings["total"] == 5
+            assert all(reading["is_simulated"] is True for reading in readings["readings"])
+            assert [reading["cycle"] for reading in readings["readings"]] == [1, 2, 3, 4, 5]
+
+            response = client.get("/machines/PERSIST/predictions?limit=100")
+            assert response.status_code == 200, response.text
+            predictions = response.json()
+            assert predictions["total"] == 5
+            assert all(prediction["machine_id"] == "PERSIST" for prediction in predictions["predictions"])
+
+            response = client.get("/alerts?machine_id=PERSIST&limit=100")
+            assert response.status_code == 200, response.text
+            alert = next(alert for alert in response.json() if alert["id"] == alert_id)
+            assert alert["status"] == "acknowledged"
+            assert alert["acknowledged_by"] == "restart-operator"
+            assert alert["acknowledged_at"] is not None
+
+            # History-based inference still works with the reopened database.
+            response = client.post(
+                "/readings",
+                json=_reading("PERSIST", cycle=6, s8=50000.0, s9=50000.0),
+            )
+            assert response.status_code == 200, response.text
+            assert response.json()["status"] == "stored"
+
+            response = client.post("/readings", json=_reading("PERSIST", cycle=1))
+            assert response.status_code == 200, response.text
+            assert response.json()["status"] == "duplicate"
+
+            response = client.post("/readings", json=_reading("PERSIST", cycle=3))
+            assert response.status_code == 200, response.text
+            # Exact existing cycles are duplicate (the API dedupes before it
+            # applies chronological ordering to missing cycles).
+            assert response.json()["status"] == "duplicate"

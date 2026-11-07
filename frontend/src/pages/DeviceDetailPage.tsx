@@ -11,8 +11,8 @@ import { MetricBar } from "@/components/charts/MetricBar";
 import { SensorGrid } from "@/components/panels/SensorGrid";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Panel } from "@/components/ui/Panel";
-import { Badge, SimBadge } from "@/components/ui/Badge";
 import { StatTile } from "@/components/ui/StatTile";
+import { Badge, SimBadge } from "@/components/ui/Badge";
 import { EmptyState, ErrorState, LoadingState, Skeleton } from "@/components/ui/States";
 import { formatAgo, formatDateTime, formatNumber, formatPercent, healthLabel } from "@/lib/format";
 import { SERIES } from "@/lib/health";
@@ -37,7 +37,10 @@ export function DeviceDetailPage() {
         title={machineId || "Device"}
         description={`Dataset ${detail.data?.dataset_id ?? "—"} · verdict ${healthLabel(detail.data?.health ?? "unknown")}`}
         actions={
-          <Link to="/devices" className="flex items-center gap-1.5 rounded border border-edge bg-panel-2 px-2.5 py-1 text-xs text-ink-dim transition hover:border-accent/40 hover:text-accent">
+          <Link
+            to="/devices"
+            className="flex items-center gap-1.5 rounded-md border border-edge bg-panel-2 px-2.5 py-1 text-xs text-ink-dim transition-colors hover:border-accent/40 hover:text-accent"
+          >
             <ArrowLeft aria-hidden className="h-3.5 w-3.5" />
             All devices
           </Link>
@@ -92,8 +95,8 @@ export function DeviceDetailPage() {
             >
               {latestReading ? (
                 <div className="space-y-3">
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-ink-dim">
-                    <span className="font-medium text-ink">Source</span>
+                  <div className="flex flex-wrap items-center gap-2 rounded-md border border-edge/70 bg-panel-2/40 px-3 py-2 text-xs text-ink-dim">
+                    <span className="font-medium tracking-[0.08em] text-ink uppercase">Source</span>
                     <Badge tone="info">{latestReading.is_simulated ? "Simulated (Phase 4 simulator)" : "Real device payload"}</Badge>
                     <span>· {lastSimulated}</span>
                   </div>
@@ -118,8 +121,8 @@ export function DeviceDetailPage() {
             ) : readings.data.readings.length > 0 ? (
               <div className="max-h-[360px] overflow-auto">
                 <table className="w-full text-left text-sm">
-                  <thead className="sticky top-0 bg-panel-2 text-[11px] tracking-wide text-ink-faint uppercase">
-                    <tr>
+                  <thead className="sticky top-0 z-10 bg-panel-2 text-[11px] tracking-wide text-ink-faint uppercase">
+                    <tr className="[&>th]:border-b [&>th]:border-edge">
                       <th scope="col" className="px-4 py-2 font-medium">Cycle</th>
                       <th scope="col" className="px-4 py-2 font-medium">Timestamp</th>
                       <th scope="col" className="px-4 py-2 font-medium">Source</th>
@@ -130,7 +133,7 @@ export function DeviceDetailPage() {
                   </thead>
                   <tbody>
                     {readings.data.readings.slice(-60).reverse().map((reading) => (
-                      <tr key={reading.id} className="border-t border-edge/60 hover:bg-white/2">
+                      <tr key={reading.id} className="border-t border-edge/60 transition-colors duration-150 hover:bg-panel-2/60">
                         <td className="tnum px-4 py-1.5 font-medium text-ink">{reading.cycle}</td>
                         <td className="px-4 py-1.5 text-xs text-ink-dim">{formatDateTime(reading.timestamp)}</td>
                         <td className="px-4 py-1.5">

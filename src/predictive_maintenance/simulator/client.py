@@ -48,7 +48,11 @@ class SimulatorClient:
             raise SimulatorClientError(
                 f"HTTP {exc.code}: {body.get('detail', {}).get('message', str(exc))}"
             ) from exc
-        except (urllib.error.URLError, json.JSONDecodeError, ValueError) as exc:
+        except (urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError, ValueError) as exc:
+            # TimeoutError / OSError cover socket read timeouts and dropped
+            # connections, which are NOT urllib.error.URLError subclasses; a
+            # transient backend stall must surface as SimulatorClientError so
+            # the orchestrator run loop survives and retries the next round.
             raise SimulatorClientError(f"request failed: {exc}") from exc
 
         self.readings_sent += len(readings)
@@ -75,7 +79,7 @@ class SimulatorClient:
             raise SimulatorClientError(
                 f"HTTP {exc.code}: {body.get('detail', {}).get('message', str(exc))}"
             ) from exc
-        except (urllib.error.URLError, json.JSONDecodeError, ValueError) as exc:
+        except (urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError, ValueError) as exc:
             raise SimulatorClientError(f"request failed: {exc}") from exc
 
     def health(self) -> dict[str, Any]:

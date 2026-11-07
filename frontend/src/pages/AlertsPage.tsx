@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BadgeCheck, Check, Filter } from "lucide-react";
+import { BadgeCheck, Check, Filter, HeartPulse } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { acknowledgeAlert, fetchAlertSummary, fetchAlerts, fetchMachines } from "@/api/endpoints";
@@ -20,6 +20,9 @@ const STATUS_FILTERS: { value: "" | AlertStatus; label: string }[] = [
   { value: "acknowledged", label: "Acknowledged" },
   { value: "resolved", label: "Resolved" },
 ];
+
+const SELECT_CLASS =
+  "rounded-md border border-edge bg-panel-2 px-2 py-1 text-xs text-ink outline-hidden transition-colors hover:border-edge-bright focus:border-accent/50";
 
 function severityTone(severity: AlertSeverity): "critical" | "warning" | "info" | "neutral" {
   if (severity === "critical") return "critical";
@@ -95,7 +98,7 @@ export function AlertsPage() {
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {summary.data === null ? (
-          [...Array(4)].map((_, i) => <Skeleton key={i} className="h-24" />)
+          [...Array(4)].map((_, i) => <Skeleton key={i} className="h-[104px]" />)
         ) : (
           <>
             <StatTile index={0} label="Active" value={summary.data.by_status["active"] ?? 0} tone="warning" />
@@ -106,7 +109,7 @@ export function AlertsPage() {
         )}
       </div>
 
-      <div className="mt-4 space-y-4">
+      <div className="mt-5 space-y-4">
         <Panel
           title="Alert stream"
           subtitle="Newest first · filtered results update the URL so views are shareable"
@@ -117,7 +120,7 @@ export function AlertsPage() {
                 aria-label="Status filter"
                 value={statusFilter}
                 onChange={(e) => setFilter("status", e.target.value)}
-                className="rounded border border-edge bg-panel-2 px-2 py-1 text-xs text-ink"
+                className={SELECT_CLASS}
               >
                 {STATUS_FILTERS.map((f) => (
                   <option key={f.value} value={f.value}>
@@ -129,7 +132,7 @@ export function AlertsPage() {
                 aria-label="Machine filter"
                 value={machineFilter}
                 onChange={(e) => setFilter("machine", e.target.value)}
-                className="max-w-40 rounded border border-edge bg-panel-2 px-2 py-1 text-xs text-ink"
+                className={`max-w-40 ${SELECT_CLASS}`}
               >
                 <option value="">All machines</option>
                 {(machines.data ?? []).map((m) => (
@@ -163,8 +166,8 @@ export function AlertsPage() {
           ) : (
             <div className="max-h-[460px] overflow-auto">
               <table className="w-full text-left text-sm">
-                <thead className="sticky top-0 bg-panel-2 text-[11px] tracking-wide text-ink-faint uppercase">
-                  <tr>
+                <thead className="sticky top-0 z-10 bg-panel-2 text-[11px] tracking-wide text-ink-faint uppercase">
+                  <tr className="[&>th]:border-b [&>th]:border-edge">
                     <th scope="col" className="px-4 py-2 font-medium">Alert</th>
                     <th scope="col" className="px-4 py-2 font-medium">Severity</th>
                     <th scope="col" className="px-4 py-2 font-medium">Machine</th>
@@ -176,12 +179,17 @@ export function AlertsPage() {
                 <tbody>
                   {data.map((alert) => {
                     const severity = SEVERITY_STYLES[alert.severity];
+                    const active = alert.status === "active";
+                    const resolved = alert.status === "resolved";
                     return (
-                      <tr key={alert.id} className="border-t border-edge/60 align-top hover:bg-white/2">
+                      <tr
+                        key={alert.id}
+                        className={`border-t border-edge/60 align-top transition-colors duration-150 hover:bg-panel-2/60 ${active ? "border-l-2 border-l-warning/70" : ""}`}
+                      >
                         <td className="px-4 py-2.5">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-start gap-2">
                             <span
-                              className={`h-1.5 w-1.5 shrink-0 rounded-full ${alert.status === "active" ? "bg-warning animate-pulse-soft" : "bg-ink-faint"}`}
+                              className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${active ? "bg-warning animate-pulse-soft" : resolved ? "bg-healthy" : "bg-info"} ${resolved ? "opacity-60" : ""}`}
                               aria-hidden="true"
                             />
                             <div>
@@ -203,7 +211,7 @@ export function AlertsPage() {
                           <Badge tone={severityTone(alert.severity)}>{severity.label}</Badge>
                         </td>
                         <td className="px-4 py-2.5">
-                          <Link to={`/devices/${encodeURIComponent(alert.machine_id)}`} className="font-medium text-ink hover:text-accent">
+                          <Link to={`/devices/${encodeURIComponent(alert.machine_id)}`} className="tnum font-medium text-ink transition-colors hover:text-accent">
                             {shortId(alert.machine_id)}
                           </Link>
                         </td>
@@ -217,7 +225,7 @@ export function AlertsPage() {
                               type="button"
                               disabled={acking !== null}
                               onClick={() => void handleAcknowledge(alert.id)}
-                              className="inline-flex items-center gap-1 rounded border border-info/40 bg-info/10 px-2.5 py-1 text-xs font-medium text-info transition hover:bg-info/20 disabled:opacity-50"
+                              className="inline-flex items-center gap-1 rounded-md border border-info/40 bg-info/10 px-2.5 py-1 text-xs font-medium text-info transition-colors hover:bg-info/20 disabled:opacity-50"
                             >
                               <Check aria-hidden className="h-3.5 w-3.5" />
                               {acking === alert.id ? "Saving…" : "Acknowledge"}
@@ -243,9 +251,15 @@ export function AlertsPage() {
           ) : (
             <ul className="space-y-2">
               {recoveries.map((alert) => (
-                <li key={alert.id} className="flex flex-wrap items-center gap-2 rounded border border-edge/60 bg-panel-2/50 px-3 py-2 text-sm">
-                  <Badge tone="healthy" aria-hidden={false}>Recovered</Badge>
-                  <Link to={`/devices/${encodeURIComponent(alert.machine_id)}`} className="font-medium text-ink hover:text-accent">
+                <li
+                  key={alert.id}
+                  className="flex flex-wrap items-center gap-2 rounded-md border border-healthy/20 bg-healthy/5 px-3 py-2 text-sm transition-colors hover:border-healthy/40"
+                >
+                  <Badge tone="healthy" aria-hidden={false}>
+                    <HeartPulse aria-hidden className="h-3 w-3" />
+                    Recovered
+                  </Badge>
+                  <Link to={`/devices/${encodeURIComponent(alert.machine_id)}`} className="tnum font-medium text-ink transition-colors hover:text-accent">
                     {shortId(alert.machine_id)}
                   </Link>
                   <span className="text-xs text-ink-faint">{formatDateTime(alert.created_at)}</span>
